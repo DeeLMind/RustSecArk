@@ -6,4 +6,6 @@
 
 > Offense first then Defense next; Forward then Reverse
 
+> 以往我的[影片](https://www.deelmind.com/program/program/rust)已經講過Rust簡單教程，講過的就不再講解了。
+
 ## Basic Syntax
