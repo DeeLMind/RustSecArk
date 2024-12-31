@@ -16,13 +16,6 @@
 - **Rust Security Tool Development**: Develop and research security-related tools for Rust.
 - **Rust Static Analysis and Dynamic Debugging**: Share reverse engineering techniques for Rust code, including debugging tools and static analysis methods.
 
-## Branch
-
-* program
-* solana
-* debug
-* cve
-
 ## Goals
 
 - Provide in-depth analysis of the Rust programming language to help developers identify and address security issues.
