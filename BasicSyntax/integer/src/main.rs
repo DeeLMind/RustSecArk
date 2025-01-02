@@ -1,0 +1,34 @@
+fn main() {
+    let interger_u8 : u8 = 10;
+    let mut bit: u8 = 0b00000001;
+    println!("interger_u8: {}", interger_u8);
+    let interger_i8 : i8 = 10;
+    println!("interger_i8: {}", interger_i8);
+    println!("interger_i8 in binary: {:08b}", interger_i8);
+    let interger_i16 : i16 = 10;
+    let interger_i32 : i32 = 10;
+    let interger_i64 : i64 = 10;
+    let interger_i128 : i128 = 10;
+    let interger_u32 : u32 = 10;
+    let interger_u64 : u64 = 10;
+    let interger_u128 : u128 = 10;
+    let interger_isize : isize = 10;
+    let interger_usize : usize = 10;
+    let interger_f32 : f32 = 10.0;
+    let interger_f64 : f64 = 10.0;
+    let interger_f64_2 = 10.0;
+    let interger_f64_3 = 10.;
+    let interger_f64_4 = 10f64;
+    let interger_f64_5 = 10.0f64;
+    let interger_f64_6 = 10.0_f64;
+    let interger_f64_7 = 10.0f64;
+    let interger_f64_8 = 10.0_f64;
+    let interger_f64_9 = 10.0f64;
+    let interger_f64_10 = 10.0_f64;
+    let interger_f64_11 = 10.0f64;
+    let interger_f64_12 = 10.0_f64;
+    let interger_f64_13 = 10.0f64;
+    let interger_f64_14 = 10.0_f64;
+    let interger_f64_15 = 10.0f64;
+    let interger_f64_16 = 10.0_f64;
+}
