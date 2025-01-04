@@ -1,7 +1,6 @@
 #![no_main]
+
 use libfuzzer_sys::fuzz_target;
-use std::process::Command;
-use cve_2024_24576::execute_command;
 
 fuzz_target!(|data: &[u8]| {
     let input = String::from_utf8_lossy(data);

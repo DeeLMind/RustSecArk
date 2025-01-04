@@ -1,5 +1,5 @@
 [package]
-name = "cve-2024-24576-fuzz"
+name = "CVE_2024_24576-fuzz"
 version = "0.0.0"
 publish = false
 edition = "2021"
@@ -10,12 +10,12 @@ cargo-fuzz = true
 [dependencies]
 libfuzzer-sys = "0.4"
 
-[dependencies.cve-2024-24576]
+[dependencies.CVE_2024_24576]
 path = ".."
 
 [[bin]]
-name = "cve_2024_24576"
-path = "fuzz_targets/cve_2024_24576.rs"
+name = "fuzz_target_1"
+path = "fuzz_targets/fuzz_target_1.rs"
 test = false
 doc = false
 bench = false
