@@ -7,3 +7,5 @@
 > Offense first then Defense next; Forward then Reverse
 
 ## CVE
+
+* [CVE-2024-24576](./CVE-2024-24576/)
