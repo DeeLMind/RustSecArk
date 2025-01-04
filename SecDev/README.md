@@ -7,3 +7,7 @@
 > Offense first then Defense next; Forward then Reverse
 
 ## Secure Dev
+
+### Fuzzy
+
+* cargo-fuzz
