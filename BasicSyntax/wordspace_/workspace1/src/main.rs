@@ -1,3 +1,7 @@
+extern crate workspace2;
+
 fn main() {
-    println!("Hello, world!");
+    println!("Workspace");
+    let result = workspace2::add(2, 2);
+    println!("Result: {}", result);
 }
