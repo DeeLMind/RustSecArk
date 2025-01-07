@@ -1,0 +1,15 @@
+# Cargo build files
+/target/
+
+# Rust metadata
+/Cargo.lock
+/Cargo.toml.orig
+
+# IDE or Editor files
+.idea/
+.vscode/
+*.swp
+
+# Other system-specific files
+.DS_Store
+Thumbs.db
