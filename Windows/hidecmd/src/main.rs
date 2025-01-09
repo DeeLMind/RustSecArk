@@ -1,28 +1,26 @@
-use windows::{
-    core::*, Win32::Foundation::*, Win32::System::Threading::*, Win32::System::ProcessStatus::*,
-    Win32::System::LibraryLoader::*, Win32::UI::WindowsAndMessaging::*,
-};
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // 假设你要运行 "notepad.exe"
-    let mut cmd = Command::new("cmd.exe")
-        .arg("/c")
-        .arg("notepad.exe")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()?;
+#![feature(windows_process_extensions_show_window)]
 
-    unsafe {
-        let mut startup_info: STARTUPINFOW = std::mem::zeroed();
-        startup_info.cb = std::mem::size_of::<STARTUPINFOW>() as DWORD;
-        GetStartupInfoW(&mut startup_info as *mut _ as LPVOID);
+use std::process::{Command, Stdio};
+use std::os::windows::process::CommandExt;
 
-        if !startup_info.hStdInput.is_null() {
-            ShowWindow(startup_info.hStdInput, SW_HIDE);
-        }
+fn main() {
+    // Execute 'winget list' command
+    let output = Command::new("winget")
+        .show_window(1)
+        .arg("list")
+        .stdout(Stdio::piped()) // Capture stdout
+        .stderr(Stdio::piped()) // Capture stderr
+        .output()
+        .expect("Failed to execute command");
+
+    // Check if the command was successful
+    if output.status.success() {
+        // Convert the captured stdout to a string and print it
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        println!("winget list output:\n{}", stdout);
+    } else {
+        // If command failed, print the error
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        eprintln!("winget list failed with error:\n{}", stderr);
     }
-
-    // 等待进程结束（可选）
-    let _ = cmd.wait()?;
-
-    Ok(())
 }
