@@ -3,6 +3,21 @@
 version = 3
 
 [[package]]
+name = "CVE_2024_24576"
+version = "0.1.0"
+dependencies = [
+ "libfuzzer-sys",
+]
+
+[[package]]
+name = "CVE_2024_24576-fuzz"
+version = "0.0.0"
+dependencies = [
+ "CVE_2024_24576",
+ "libfuzzer-sys",
+]
+
+[[package]]
 name = "arbitrary"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -17,18 +32,6 @@ dependencies = [
  "jobserver",
  "libc",
  "shlex",
-]
-
-[[package]]
-name = "cve_2024_24576"
-version = "0.1.0"
-
-[[package]]
-name = "cve_2024_24576-fuzz"
-version = "0.0.0"
-dependencies = [
- "cve_2024_24576",
- "libfuzzer-sys",
 ]
 
 [[package]]
