@@ -1,48 +1,58 @@
-use std::process::{Command, Stdio};
-use std::io::{self, BufRead};
-use std::{thread, time};
+use std::thread;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc;
 
-fn main() -> io::Result<()> {
-    // 创建一个命令行进程来执行 ping 命令
-    let mut child = Command::new("ping")
-        .arg("google.com")  // 目标主机地址
-        .arg("-c")           // 指定 ping 次数，-c 1 代表每次只发送 1 个 ping 请求
-        .arg("1")
-        .stdout(Stdio::piped())  // 捕获标准输出
-        .spawn()?;  // 启动子进程
+fn thread1() -> i32{
+    // 创建线程
+    let handle = thread::spawn(|| {
+        println!("This is a thread!");
+        1
+    });
 
-    // 获取子进程的标准输出
-    let stdout = child.stdout.take().expect("Failed to capture stdout");
+    // 等待线程完成，获取返回值
+    let r = handle.join().unwrap();
+    println!("Main thread!");
+    r
+}
 
-    // 创建一个 BufReader 来逐行读取标准输出
-    let reader = io::BufReader::new(stdout);
+fn thread2(){
+    let counter = Arc::new(Mutex::new(0)); // 共享数据
 
-    // 设置定时器（1 秒钟）
-    let one_second = time::Duration::from_secs(1);
+    let mut handles = vec![];
 
-    loop {
-        // 逐行读取并打印
-        match reader.lines().next() {
-            Some(Ok(output)) => {
-                println!("{}", output);  // 打印每一行
-            }
-            Some(Err(e)) => {
-                eprintln!("Error reading line: {}", e);
-                break;
-            }
-            None => {
-                // 如果没有更多输出，等待 1 秒钟后继续读取
-                thread::sleep(one_second);
-            }
-        }
+    for _ in 0..10 {
+        let counter = Arc::clone(&counter); // 克隆 Arc
+        let handle = thread::spawn(move || {
+            let mut num = counter.lock().unwrap(); // 获取 Mutex 锁
+            *num += 1;
+        });
 
-        // 如果需要，也可以判断子进程是否结束
-        if let Ok(status) = child.try_wait() {
-            if status.is_some() {
-                break;
-            }
-        }
+        handles.push(handle);
     }
 
-    Ok(())
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    println!("Result: {}", *counter.lock().unwrap()); // 打印最终结果
+}
+
+fn thread3(){
+    let (tx, rx) = mpsc::channel(); // 创建通道
+
+    let handle = thread::spawn(move || {
+        tx.send("Hello from the thread!").unwrap(); // 发送消息
+    });
+
+    let message = rx.recv().unwrap(); // 接收消息
+    println!("Received: {}", message);
+
+    handle.join().unwrap();
+}
+
+fn main() {
+    // let r = thread1();
+    // println!("r = {}", r);
+    // thread2();
+    thread3();
 }
