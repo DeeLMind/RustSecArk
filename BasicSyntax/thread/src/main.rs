@@ -1,111 +1,65 @@
-use tokio::time::{sleep, Duration};
-use std::sync::{Arc, Mutex};
-use tokio::sync::oneshot;
-use uuid::Uuid;
+use tokio::sync::Mutex;
+use std::sync::Arc;
 use std::collections::HashMap;
-use std::task::Waker;
-use std::sync::mpsc::{Sender, channel};
+use tokio::task;
 
-#[derive(Clone)]
+#[derive(Default)]
 pub struct TaskManager {
-    tasks: Arc<Mutex<HashMap<String, Task>>>,
+    tasks: Mutex<HashMap<String, tokio::task::JoinHandle<()>>>,
 }
 
 impl TaskManager {
-    pub fn new() -> Self {
-        TaskManager {
-            tasks: Arc::new(Mutex::new(HashMap::new())),
+    // 启动一个任务
+    pub async fn start_task(&self, task_name: String) {
+        let mut tasks = self.tasks.lock().await;
+
+        if tasks.contains_key(&task_name) {
+            println!("任务 {} 已经在执行中", task_name);
+            return; // 如果任务已在执行中，则不再启动
         }
-    }
 
-    // 注册并执行任务
-    pub fn register_task<F>(&self, task_fn: F) -> String
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        let task_id = Uuid::new_v4().to_string();
-        let task = Task::new(Box::new(task_fn));
-        
-        self.tasks.lock().unwrap().insert(task_id.clone(), task);
-        task_fn(); // 执行任务
-        
-        task_id
-    }
-
-    // 直接执行任务
-    pub fn execute_task<F>(&self, task_fn: F)
-    where
-        F: FnOnce() + Send + 'static,
-    {
-        tokio::spawn(async move {
-            task_fn();
-        });
-    }
-
-    // 定时执行任务
-    pub fn schedule_task<F>(&self, task_fn: F, interval: Duration) -> String
-    where
-        F: Fn() + Send + 'static,
-    {
-        let task_id = Uuid::new_v4().to_string();
-        let task = Task::new(Box::new(task_fn));
-
-        self.tasks.lock().unwrap().insert(task_id.clone(), task);
-
-        tokio::spawn(async move {
-            loop {
-                task_fn();
-                sleep(interval).await;
-            }
+        // 创建一个新的任务
+        let handle = tokio::spawn(async move {
+            println!("任务 {} 执行中...", task_name);
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            println!("任务 {} 执行完成", task_name);
         });
 
-        task_id
+        tasks.insert(task_name, handle);
     }
 
-    // 取消任务
-    pub fn cancel_task(&self, task_id: &str) -> Option<()> {
-        let mut tasks = self.tasks.lock().unwrap();
-        tasks.remove(task_id);
-        Some(())
-    }
-}
-
-struct Task {
-    task_fn: Box<dyn Fn() + Send>,
-}
-
-impl Task {
-    fn new<F>(task_fn: F) -> Self
-    where
-        F: Fn() + Send + 'static,
-    {
-        Task {
-            task_fn: Box::new(task_fn),
+    // 停止一个任务
+    pub async fn stop_task(&self, task_name: String) {
+        let mut tasks = self.tasks.lock().await;
+        if let Some(handle) = tasks.remove(&task_name) {
+            // 在这里可以尝试取消任务，尽管 tokio 并不直接支持任务的中断
+            println!("任务 {} 已取消", task_name);
         }
     }
 }
 
-// 下面是模拟运行时调用的示例代码（main函数）：
-#[tokio::main]
-async fn main() {
-    let manager = TaskManager::new();
+async fn start_task(manager: tauri::State<'_, Arc<TaskManager>>, task_name: String) {
+    manager.start_task(task_name).await;
+}
 
-    // 注册并执行一个简单任务
-    let task_id = manager.register_task(|| {
-        println!("This is a registered task");
+async fn stop_task(manager: tauri::State<'_, Arc<TaskManager>>, task_name: String) {
+    manager.stop_task(task_name).await;
+}
+
+fn main() {
+    let task_manager = Arc::new(TaskManager::default());
+
+    // 启动任务
+    let task_name = "task1".to_string();
+    let manager_clone = task_manager.clone();
+    tokio::spawn(async move {
+        start_task(manager_clone, task_name).await;
     });
 
-    println!("Registered task with ID: {}", task_id);
-
-    // 定时执行任务
-    let task_id2 = manager.schedule_task(|| {
-        println!("This task is executed periodically!");
-    }, Duration::from_secs(2));
-
-    println!("Scheduled periodic task with ID: {}", task_id2);
-
-    // 取消任务
-    tokio::time::sleep(Duration::from_secs(5)).await;
-    manager.cancel_task(&task_id2);
-    println!("Canceled task with ID: {}", task_id2);
+    // 停止任务
+    let task_name = "task1".to_string();
+    let manager_clone = task_manager.clone();
+    tokio::spawn(async move {
+        stop_task(manager_clone, task_name).await;
+    });
 }
