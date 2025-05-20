@@ -50,7 +50,7 @@ fn main() {
     let y = 100;
     
     let ptr_x: *const i32 = &x;
-    let ptr_y: *mut i32 = &y as *mut i32;
+    // let ptr_y: *mut i32 = &y as *mut i32;
 
     unsafe {
         let mutable_ptr_x: *mut i32 = ptr_x as *mut i32; 
