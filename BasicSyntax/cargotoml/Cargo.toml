@@ -2,5 +2,14 @@
 name = "cargotoml"
 version = "0.1.0"
 edition = "2021"
+authors = ["DeeLMind"]
+description = "TomlTUT"
+license = "MIT OR Apache-2.0"  # 许可证
+repository = "https://deelmind.com/"
 
 [dependencies]
+serde = { version = "1.0", features = ["derive"] }
+rand = "0.8.5"
+
+[dev-dependencies]
+criterion = "0.5"
