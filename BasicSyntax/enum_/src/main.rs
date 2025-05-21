@@ -1,40 +1,68 @@
-
-fn divide(a: i32, b: i32) -> Result<i32, String> {
-    if b == 0 {
-        Err("Cannot divide by zero".to_string())
-    } else {
-        Ok(a / b)
+fn main() {
+    // 1. Custom enum definition
+    enum Direction {
+        Up,
+        Down,
+        Left,
+        Right,
     }
-}
 
-fn safe_divide(a: i32, b: i32) -> Result<i32, String> {
-    let result = divide(a, b)?;  // 使用 ? 传播错误
-    Ok(result)
-}
-
-fn find_item<'a>(items: &[&'a str], search: &'a str) -> Option<&'a str> {
-    for &item in items {
-        if item == search {
-            return Some(item);
+    impl Direction {
+        // Method to describe the direction as a string
+        fn describe(&self) -> &str {
+            match self {
+                Direction::Up => "Going up",
+                Direction::Down => "Going down",
+                Direction::Left => "Going left",
+                Direction::Right => "Going right",
+            }
         }
     }
-    None
-}
 
-fn safe_find_item<'a>(items: &[&'a str], search: &'a str) -> Option<&'a str> {
-    let item = find_item(items, search)?;
-    Some(item)
-}
+    // Using the Direction enum
+    let dir = Direction::Left;
+    println!("Direction: {}", dir.describe());
 
-fn main() {
-    match safe_divide(10, 0) {
-        Ok(value) => println!("Result: {}", value),
-        Err(e) => println!("Error: {}", e),
+    // 2. Option<T> - Standard enum representing optional values
+    let some_number: Option<i32> = Some(42);
+    let no_number: Option<i32> = None;
+
+    // Matching on Option values
+    match some_number {
+        Some(n) => println!("Got a number: {}", n),
+        None => println!("No number found"),
     }
 
-    let items = ["apple", "banana", "cherry"];
-    match safe_find_item(&items, "banana") {
-        Some(item) => println!("Found: {}", item),
-        None => println!("Item not found"),
+    match no_number {
+        Some(n) => println!("Got a number: {}", n),
+        None => println!("No number found"),
+    }
+
+    // 3. Result<T, E> - Standard enum representing success or error
+    // Define a custom error type
+    #[derive(Debug)]
+    enum MyError {
+        NotFound,
+        PermissionDenied,
+    }
+
+    // Function that returns a Result type
+    fn might_fail(success: bool) -> Result<String, MyError> {
+        if success {
+            Ok("Operation succeeded".to_string())
+        } else {
+            Err(MyError::NotFound)
+        }
+    }
+
+    // Using the Result enum with pattern matching
+    match might_fail(true) {
+        Ok(msg) => println!("Success: {}", msg),
+        Err(e) => println!("Error: {:?}", e),
+    }
+
+    match might_fail(false) {
+        Ok(msg) => println!("Success: {}", msg),
+        Err(e) => println!("Error: {:?}", e),
     }
 }
