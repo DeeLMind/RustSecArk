@@ -1,1 +1,3 @@
-pub mod data;
+pub mod integer;
+pub mod float;
+pub mod default;

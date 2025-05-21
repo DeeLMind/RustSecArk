@@ -1,4 +1,4 @@
-pub fn data() -> i32 {
+pub fn get_integer() -> i32 {
     println!("data");
     42
 }
