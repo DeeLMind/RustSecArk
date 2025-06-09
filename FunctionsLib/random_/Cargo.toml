@@ -1,8 +1,7 @@
 [package]
-name = "download"
+name = "random_"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-curl = "0.4.47"
-once_cell = "1.21.3"
+rand = "0.9.1"
