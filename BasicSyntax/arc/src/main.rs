@@ -15,7 +15,7 @@ fn arc_1_test() {
     let a = Arc::new(1);
     let b = a.clone();
     println!("a:{}{:p}-b:{}{:p}",a,a,b,b);
-    println!("{:p}-{:p}",&a as *const _,&b as *const _);
+    println!("{:p}-{:p}",&a as *const _,(&b) as *const _);
 }
 
 fn arc_2_test() {
@@ -39,5 +39,5 @@ fn arc_2_test() {
 }
 
 fn main() {
-    arc_2_test();
+    arc_1_test();
 }
