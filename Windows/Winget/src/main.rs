@@ -12,7 +12,7 @@ use std::{
 /// Windows ONLY：CREATE_NO_WINDOW
 #[cfg(windows)]
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-
+//
 /// 执行winget命令行，返回搜索结果字符串
 ///
 /// # 参数
@@ -74,32 +74,218 @@ where
         Err(_) => Err("命令执行超时".into()),
     }
 }
+//
+// fn get_chars_slice(s: &str, start: usize, end: usize) -> String {
+//     s.chars().skip(start).take(end - start).collect()
+// }
+//
+// fn get_chars_from(s: &str, start: usize) -> String {
+//     s.chars().skip(start).collect()
+// }
+//
+// #[derive(Serialize, Debug)]
+// struct Software {
+//     name: String,
+//     id: String,
+//     version: String,
+//     source: String,
+// }
+//
+// fn process_packages(reader: &str) -> Result<String, String> {
+//     let mut reader = reader.to_string();
+//     let mut packages = Vec::new();
+//     let mut old_line = String::new();
+//     let mut id_index = -1;
+//     let mut version_index = -1;
+//     let mut source_index = -1;
+//     let mut dashes_passed = false;
+//
+//     if let Some(pos) = reader.find("Name") {
+//         reader = reader[pos..].to_string();
+//     }
+//
+//     for line in reader.lines() {
+//         if !dashes_passed && line.contains("---") {
+//             let header_prefix = if old_line.contains("SearchId") { "Search" } else { "" };
+//
+//             id_index = old_line
+//                 .find(&(header_prefix.to_string() + "Id"))
+//                 .unwrap_or(usize::MAX) as i32;
+//             version_index = old_line
+//                 .find(&(header_prefix.to_string() + "Version"))
+//                 .unwrap_or(usize::MAX) as i32;
+//             source_index = old_line
+//                 .find(&(header_prefix.to_string() + "Source"))
+//                 .unwrap_or(usize::MAX) as i32;
+//
+//             dashes_passed = true;
+//         } else if dashes_passed
+//             && id_index > 0
+//             && version_index > 0
+//             && id_index < version_index
+//             && (version_index as usize) < line.len()
+//         {
+//             let mut offset = 0;
+//             while line.chars().nth((id_index - offset - 1) as usize) != Some(' ')
+//                 && offset <= (id_index - 5)
+//             {
+//                 offset += 1;
+//             }
+//
+//             // loop {
+//             //     let check_pos = id_index - offset - 1;
+//             //
+//             //     // 终止条件1：下标越界
+//             //     if check_pos < 0 {
+//             //         println!("终止：check_pos < 0，offset={}", offset);
+//             //         break;
+//             //     }
+//             //
+//             //     // 取出字符
+//             //     let current_char = line.chars().nth(check_pos as usize).unwrap_or(' ');
+//             //     println!(
+//             //         "检查位置 {} 的字符为 '{}', offset={}",
+//             //         check_pos, current_char, offset
+//             //     );
+//             //
+//             //     // 终止条件2：找到空格并且 offset 不大于 id_index - 5
+//             //     let stop = current_char == ' ' && offset <= (id_index - 5);
+//             //     if stop {
+//             //         println!("终止：找到空格且 offset 合理，offset={}", offset);
+//             //         break;
+//             //     }
+//             //
+//             //     // 继续向左推进 offset
+//             //     offset += 1;
+//             //
+//             //     // 防止无限循环：加个安全退出阈值（可选）
+//             //     if offset > id_index {
+//             //         println!("警告：offset 超过 id_index（{}），强制退出循环", id_index);
+//             //         break;
+//             //     }
+//             // }
+//
+//             let name = {
+//                 let name_part = get_chars_slice(line, 0, (id_index - offset) as usize);
+//                 name_part.trim().to_string()
+//             };
+//
+//             let id = {
+//                 let id_part = get_chars_from(line, (id_index - offset) as usize);
+//                 id_part.trim().split_whitespace().next().unwrap_or("").to_string()
+//             };
+//
+//             let version = {
+//                 let version_part = get_chars_from(line, (version_index - offset) as usize);
+//                 version_part.trim().split_whitespace().next().unwrap_or("").to_string()
+//             };
+//
+//             let source = {
+//                 let source_start = (source_index - offset) as usize;
+//                 if source_index == -1 || source_start >= line.chars().count() {
+//                     "winget".to_string()
+//                 } else {
+//                     let source_part = get_chars_from(line, source_start);
+//                     source_part.trim().split_whitespace().next().unwrap_or("winget").to_string()
+//                 }
+//             };
+//
+//             packages.push(Software {
+//                 name,
+//                 id,
+//                 version,
+//                 source,
+//             });
+//         }
+//
+//         old_line = line.to_string();
+//     }
+//
+//     serde_json::to_string(&packages).map_err(|e| e.to_string())
+// }
+//
+//
+// /// 搜索软件
+// ///
+// /// # 参数
+// ///
+// /// * `winget_path` - winget可执行文件路径
+// /// * `software_name` - 软件名称
+// /// * `source` - 软件源，是软件筛选winget、msstore等
+// ///
+// /// # 返回值
+// ///
+// /// * `Result<String, String>` - 返回搜索结果字符串，或错误信息
+// pub async fn search_winget(winget_path: &str,software_name: &str) -> Result<String, String> {
+//     let result =exec_cmd(
+//         winget_path,
+//         vec!["search", software_name],
+//         true,
+//         std::time::Duration::from_secs(15),
+//     ).await?;
+//     process_packages(&result)
+// }
+//
+// #[derive(Debug, Deserialize)]
+// struct AppInfo {
+//     name: String,
+//     id: String,
+//     version: String,
+//     #[serde(rename = "source")]
+//     source: Option<String>, // 有些项目可能字段写错了
+// }
+//
+// fn print_apps(value: &Value) {
+//     // 尝试将 Value 转为 Vec<AppInfo>
+//     match serde_json::from_value::<Vec<AppInfo>>(value.clone()) {
+//         Ok(apps) => {
+//             for app in apps {
+//                 println!(
+//                     "名称: {:<20} | ID: {:<30} | 版本: {:<12} | 来源: {}",
+//                     app.name,
+//                     app.id,
+//                     app.version,
+//                     app.source.unwrap_or_else(|| "未知".to_string())
+//                 );
+//             }
+//         }
+//         Err(e) => {
+//             eprintln!("解析 Value 失败: {}", e);
+//         }
+//     }
+// }
+//
+// #[tokio::main]
+// async fn main() {
+//     let result = search_winget(WINGET,"wechat").await.unwrap();
+//     println!("{}",result);
+//     let parsed:Value = serde_json::from_str(result.as_str()).unwrap();
+//     print_apps(&parsed);
+// }
 
-
-#[derive(Serialize, Debug)]
-struct Software {
+#[derive(serde::Serialize)]
+pub struct WingetList {
     name: String,
     id: String,
     version: String,
-    source: String,
 }
 
-/// 处理winget搜索结果
-///
-/// # 参数
-///
-/// * reader - winget搜索结果字符串
-///
-/// # 返回值
-///
-/// * Result<String, String> - 返回处理后的JSON字符串，或错误信息
-fn process_packages(reader: &str) -> Result<String, String> {
-    let mut reader = reader.to_string();
+// 工具函数：按字符位置截取字符串（start..end）
+fn get_chars_range(s: &str, start: usize, end: usize) -> String {
+    s.chars().skip(start).take(end - start).collect()
+}
+
+// 工具函数：从字符位置 start 开始一直取到结尾
+fn get_chars_from(s: &str, start: usize) -> String {
+    s.chars().skip(start).collect()
+}
+
+pub fn parse_list_info(result: &str) -> Result<String, String> {
+    let mut reader = result.to_string();
     let mut packages = Vec::new();
     let mut old_line = String::new();
     let mut id_index = -1;
     let mut version_index = -1;
-    let mut source_index = -1;
     let mut dashes_passed = false;
 
     if let Some(pos) = reader.find("Name") {
@@ -122,10 +308,6 @@ fn process_packages(reader: &str) -> Result<String, String> {
                 .find(&(header_prefix.to_string() + "Version"))
                 .unwrap_or(usize::MAX) as i32;
 
-            source_index = old_line
-                .find(&(header_prefix.to_string() + "Source"))
-                .unwrap_or(-1_i32 as usize) as i32;
-
             dashes_passed = true;
         } else if dashes_passed
             && id_index > 0
@@ -145,47 +327,29 @@ fn process_packages(reader: &str) -> Result<String, String> {
                 offset += 1;
             }
 
-            let name = line
-                .get(..(id_index - offset) as usize)
-                .unwrap_or("")
-                .trim()
-                .to_string();
 
-            let id = line
-                .get((id_index - offset) as usize..)
-                .unwrap_or("")
-                .trim()
-                .split_whitespace()
-                .next()
-                .unwrap_or("")
-                .to_string();
-
-            let version = line
-                .get((version_index - offset) as usize..)
-                .unwrap_or("")
-                .trim()
-                .split_whitespace()
-                .next()
-                .unwrap_or("")
-                .to_string();
-
-            let source = if source_index == -1 || (source_index as usize) >= line.len() {
-                "winget".to_string()
-            } else {
-                line.get((source_index - offset) as usize..)
-                    .unwrap_or("")
-                    .trim()
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("winget")
-                    .to_string()
+            let name = {
+                let end = (id_index - offset) as usize;
+                let part = get_chars_range(line, 0, end);
+                part.trim().to_string()
             };
 
-            packages.push(Software {
+            let id = {
+                let start = (id_index - offset) as usize;
+                let part = get_chars_from(line, start);
+                part.trim().split_whitespace().next().unwrap_or("").to_string()
+            };
+
+            let version = {
+                let start = (version_index - offset) as usize;
+                let part = get_chars_from(line, start);
+                part.trim().split_whitespace().next().unwrap_or("").to_string()
+            };
+
+            packages.push(WingetList {
                 name,
                 id,
                 version,
-                source,
             });
         }
 
@@ -195,60 +359,22 @@ fn process_packages(reader: &str) -> Result<String, String> {
     serde_json::to_string(&packages).map_err(|e| e.to_string())
 }
 
-/// 搜索软件
-///
-/// # 参数
-///
-/// * `winget_path` - winget可执行文件路径
-/// * `software_name` - 软件名称
-/// * `source` - 软件源，是软件筛选winget、msstore等
-///
-/// # 返回值
-///
-/// * `Result<String, String>` - 返回搜索结果字符串，或错误信息
-pub async fn search_winget(winget_path: &str,software_name: &str,source: &str) -> Result<String, String> {
-    let result =exec_cmd(
+
+/// 列出本地软件并返回 JSON 格式
+pub async fn list(winget_path:&str) -> Result<String, String> {
+    println!("Listing installed software using winget at: {}", winget_path);
+    let result = exec_cmd(
         winget_path,
-        vec!["search", software_name, "-s", source],
+        vec!["list","-s","winget"],
         true,
-        std::time::Duration::from_secs(5),
+        std::time::Duration::from_secs(15),
     ).await?;
-    process_packages(&result)
-}
-
-#[derive(Debug, Deserialize)]
-struct AppInfo {
-    name: String,
-    id: String,
-    version: String,
-    #[serde(rename = "source")]
-    source: Option<String>, // 有些项目可能字段写错了
-}
-
-fn print_apps(value: &Value) {
-    // 尝试将 Value 转为 Vec<AppInfo>
-    match serde_json::from_value::<Vec<AppInfo>>(value.clone()) {
-        Ok(apps) => {
-            for app in apps {
-                println!(
-                    "名称: {:<20} | ID: {:<30} | 版本: {:<12} | 来源: {}",
-                    app.name,
-                    app.id,
-                    app.version,
-                    app.source.unwrap_or_else(|| "未知".to_string())
-                );
-            }
-        }
-        Err(e) => {
-            eprintln!("解析 Value 失败: {}", e);
-        }
-    }
+    println!("[winget] list result: {}", result);
+    let app_info = parse_list_info(&result)?;
+    Ok(app_info)
 }
 
 #[tokio::main]
 async fn main() {
-    let result = search_winget(WINGET,"wechat","winget").await.unwrap();
-    // println!("{}",result);
-    let parsed:Value = serde_json::from_str(result.as_str()).unwrap();
-    print_apps(&parsed);
+    list(WINGET).await;
 }

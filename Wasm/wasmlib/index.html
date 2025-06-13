@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Rust + WASM</title>
+</head>
+<body>
+<h1>Rust + WASM</h1>
+<button onclick="sayHello()">Say Hello</button>
+
+<script type="module">
+    import initSync, { greet } from "./pkg/wasmlib.js";
+
+    async function run() {
+        await initSync();
+        // Optionally, you can log to confirm initialization
+        console.log("WebAssembly module initialized");
+    }
+
+    // Ensure sayHello is globally accessible
+    window.sayHello = function() {
+        console.log("sayHello");
+        try {
+            alert(greet("WebAssembly"));
+        } catch (e) {
+            console.error("Error calling greet:", e);
+            alert("WebAssembly module not yet initialized or failed to load.");
+        }
+    };
+
+    // Run initialization
+    run().catch(err => console.error("Initialization failed:", err));
+</script>
+</body>
+</html>
