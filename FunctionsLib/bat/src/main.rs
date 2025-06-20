@@ -1,17 +1,48 @@
 use std::{
-    fs::{self, File},
-    io::{self, Read, Write},
+    fs::{self, File,write},
+    io::{self, Read, Write,BufReader},
     path::PathBuf,
-    process::Command,
+    path::Path,
+    env
 };
+use std::process::{Command,exit, id as current_pid};
 use sha2::{Sha256, Digest};
 use curl::easy::Easy;
+use std::cmp::Ordering;
+
+pub fn compare_versions(a: &str, b: &str) -> Result<Ordering, String> {
+    let parse = |v: &str| -> Result<Vec<u32>, String> {
+        v.split('.')
+            .map(|s| s.parse::<u32>().map_err(|_| format!("Invalid version part: '{}'", s)))
+            .collect()
+    };
+
+    let mut va = parse(a)?;
+    let mut vb = parse(b)?;
+
+    // 补齐位数（如 "1.0" vs "1.0.0"）
+    let max_len = va.len().max(vb.len());
+    va.resize(max_len, 0);
+    vb.resize(max_len, 0);
+
+    Ok(va.cmp(&vb))
+}
+
+fn extract_value(text: &str, key: &str) -> Option<String> {
+    for line in text.lines() {
+        if let Some(stripped) = line.strip_prefix(key) {
+            return Some(stripped.trim().to_string());
+        }
+    }
+    None
+}
+
 
 fn get_info(url: &str) -> Result<(String, String), Box<dyn std::error::Error>> {
     let mut easy = Easy::new();
     easy.url(url)?;
     // Enable verbose mode for debugging
-    easy.verbose(true)?;
+    // easy.verbose(true)?;
     let mut data = Vec::new();
     {
         let mut transfer = easy.transfer();
@@ -33,184 +64,129 @@ fn get_info(url: &str) -> Result<(String, String), Box<dyn std::error::Error>> {
     Ok((version, sha256))
 }
 
-fn extract_value(text: &str, key: &str) -> Option<String> {
-    for line in text.lines() {
-        if let Some(stripped) = line.strip_prefix(key) {
-            return Some(stripped.trim().to_string());
+pub fn check_sha256(info: String, update_location: String) -> Result<String, Box<dyn std::error::Error>> {
+    // 获取远程的 sha256
+    let (_, expected_sha256) = get_info(&info)?; // 你自己的实现，返回 (version, sha256)
+
+    // 打开本地文件
+    let file = File::open(Path::new(&update_location))?;
+    let mut reader = BufReader::new(file);
+
+    // 计算本地文件 SHA256
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 4096];
+
+    loop {
+        let n = reader.read(&mut buffer)?;
+        if n == 0 {
+            break;
         }
-    }
-    None
-}
-
-fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
-    let parse = |v: &str| v.split('.').map(|s| s.parse::<u32>().unwrap_or(0)).collect::<Vec<_>>();
-    parse(a).cmp(&parse(b))
-}
-
-async fn launch_updater_bat_async(old_exe: &PathBuf, new_exe: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    let bat_path = old_exe.with_file_name("updater.bat");
-
-    let bat_script = format!(
-        r#"
-@echo off
-echo 🔄 等待主程序退出...
-
-:: 尝试终止当前程序
-taskkill /IM "{exe_name}" /F >nul 2>&1
-if errorlevel 1 (
-    echo ⚠️ 无法终止程序，可能已关闭
-)
-
-:: 等待确保程序完全退出
-:waitloop
-tasklist | findstr /I /C:"{exe_name}" >nul
-if not errorlevel 1 (
-    timeout /t 1 >nul
-    goto waitloop
-)
-
-echo ♻️ 替换原程序
-move /Y "{new_exe}" "{old_exe}"
-if errorlevel 1 (
-    echo ❌ 文件替换失败
-    exit /b 1
-)
-
-echo 🚀 启动新程序
-start "" "{old_exe}"
-if errorlevel 1 (
-    echo ❌ 无法启动新程序
-    exit /b 1
-)
-
-:: 删除批处理文件自身
-del "%~f0"
-exit
-"#,
-        exe_name = old_exe.file_name().unwrap().to_string_lossy(),
-        old_exe = old_exe.display(),
-        new_exe = new_exe.display(),
-    );
-
-    tokio::fs::write(&bat_path, bat_script).await?;
-
-    Command::new("cmd")
-        .args(["/C", bat_path.to_str().unwrap()])
-        .spawn()?;
-    Ok(())
-}
-
-pub async fn update(
-    remote_uri_info: &str,
-    remote_uri_exe: &str,
-    temp_dir: &PathBuf,
-    local_version: &str,
-    self_exe_path: &PathBuf,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let (version, expected_sha) = get_info(remote_uri_info)?;
-    if compare_versions(&version, local_version) != std::cmp::Ordering::Greater {
-        println!("✅ 当前已是最新版本：{}", local_version);
-        return Ok(());
+        hasher.update(&buffer[..n]);
     }
 
-    println!("🔄 有新版本：{} → {}", local_version, version);
+    // 获取 hex 编码
+    let result_hash = hasher.finalize();
+    let actual_sha256 = hex::encode(result_hash);
 
-    let exe_url = format!("{}/{}.exe", remote_uri_exe.trim_end_matches('/'), version);
-    let file_name = exe_url
-        .split('/')
-        .last()
-        .ok_or("无法从 URL 提取文件名")?
-        .to_string();
-    let temp_file_path = temp_dir.join(&file_name);
+    // 比较 hash
+    if actual_sha256.eq_ignore_ascii_case(&expected_sha256) {
+        Ok("SHA256 校验通过".into())
+    } else {
+        Err(format!(
+            "SHA256 校验失败！期望: {}, 实际: {}",
+            expected_sha256, actual_sha256
+        ).into())
+    }
+}
 
-    println!("⬇️ 正在下载新版本文件: {} 到 {}...", file_name, temp_file_path.display());
+use serde::Serialize;
 
-    // 尝试下载，重试 3 次
-    let max_retries = 3;
-    let mut attempt = 1;
-    let mut last_error = None;
+pub fn update(
+    remote_uri_info: String,
+    download_url: String,
+    local_version: String,
+    location: String,
+) -> Result<bool, String> {
+    let (version, _sha256) = get_info(&remote_uri_info)
+        .map_err(|e| format!("获取版本信息失败: {}", e))?;
 
-    while attempt <= max_retries {
-        println!("尝试下载 (第 {}/{} 次)...", attempt, max_retries);
-        let mut file = match File::create(&temp_file_path) {
-            Ok(file) => file,
-            Err(e) => {
-                eprintln!("❌ 无法创建文件 {}: {}", temp_file_path.display(), e);
-                return Err(e.into());
-            }
-        };
+    let cmp_result = compare_versions(&version, &local_version)
+        .map_err(|e| format!("版本对比失败: {}", e))?;
 
-        let mut easy = Easy::new();
-        easy.url(&exe_url)?;
-        easy.verbose(true)?; // 启用详细日志
-        easy.follow_location(true)?; // 自动处理重定向
+    if cmp_result == std::cmp::Ordering::Greater {
+        // 有新版本，执行下载
+        let path = std::path::Path::new(&location);
+        let mut file = std::fs::File::create(&path)
+            .map_err(|e| format!("创建文件失败: {}", e))?;
 
-        let result = {
+        let mut easy = curl::easy::Easy::new();
+        easy.url(&download_url).map_err(|e| e.to_string())?;
+        easy.follow_location(true).map_err(|e| e.to_string())?;
+
+        {
             let mut transfer = easy.transfer();
             transfer.write_function(|data| {
                 file.write_all(data)
                     .map(|_| data.len())
-                    .map_err(|e| curl::easy::WriteError::Pause)
-            })?;
-            transfer.perform()
-        };
-
-        match result {
-            Ok(()) => {
-                println!("✅ 下载成功: {}", file_name);
-                break;
-            }
-            Err(e) => {
-                eprintln!("❌ 下载失败 (第 {}/{} 次): {}", attempt, max_retries, e);
-                last_error = Some(e);
-                attempt += 1;
-                if attempt <= max_retries {
-                    println!("⏳ 等待 3 秒后重试...");
-                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-                }
-            }
+                    .map_err(|_| curl::easy::WriteError::Pause) // or another variant
+            }).expect("");
+            transfer.perform().expect("");
         }
+
+        Ok(true) // 成功下载并更新
+    } else {
+        Ok(false) // 无需更新
     }
-
-    if attempt > max_retries {
-        return Err(format!("❌ 下载失败，经过 {} 次尝试: {:?}", max_retries, last_error).into());
-    }
-
-    println!("🔒 正在校验文件完整性...");
-    let mut file = File::open(&temp_file_path)?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer)?;
-    let actual_sha = format!("{:x}", Sha256::digest(&buffer));
-
-    if actual_sha != expected_sha {
-        return Err(format!("❌ 文件校验失败，期望 SHA256: {}, 实际: {}", expected_sha, actual_sha).into());
-    }
-
-    println!("✅ 校验成功，准备执行更新程序");
-
-    launch_updater_bat_async(self_exe_path, &temp_file_path).await?;
-
-    println!("⏳ 更新程序启动完成，程序即将退出...");
-    std::process::exit(0);
 }
+
+
+pub fn do_update(update_file: String, run_file: String) -> Result<(), Box<dyn std::error::Error>> {
+    let mut bat_path = env::temp_dir();
+    bat_path.push("update_replace.bat");
+
+    let pid = std::process::id();
+
+    let bat_content = format!(
+        r#"@echo off
+:loop
+tasklist /fi "PID eq {pid}" | findstr /i "{exe}" >nul
+if %ERRORLEVEL%==0 (
+    timeout /t 1 /nobreak >nul
+    goto loop
+)
+timeout /t 1
+move /Y "{update}" "{target}"
+start "" "{target}"
+timeout /t 1
+del "%~f0"
+"#,
+        pid = pid,
+        exe = run_file.split('\\').last().unwrap_or(""),
+        update = update_file.replace("/", "\\"),
+        target = run_file.replace("/", "\\")
+    );
+
+    write(&bat_path, bat_content)?;
+    println!("写入更新脚本：{}", bat_path.display());
+
+    Command::new("cmd")
+        .args(&["/C", bat_path.to_str().unwrap()])
+        .spawn()?; // 可考虑加 stdout/stderr 重定向
+
+    exit(0); // 终止当前程序，bat 会完成剩下的任务
+}
+
 
 #[tokio::main]
 async fn main() {
     let remote_uri_info = "https://tspacey.com/info.txt";
     let remote_uri_exe = "https://tspacey.com/tspacey.res.exe";
-    let temp_dir = PathBuf::from("C:\\Users\\DeeLMind\\Downloads");
-    let local_version = "1.0.1";
-    let self_exe_path = PathBuf::from("C:\\Users\\DeeLMind\\Downloads\\winget-cli_x64");
-
-    println!("当前版本: {}", local_version);
-    println!("按回车键开始更新...");
-
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("读取输入失败");
-
-    if let Err(e) = update(remote_uri_info, remote_uri_exe, &temp_dir, local_version, &self_exe_path).await {
-        eprintln!("更新失败: {}", e);
-    }
+    let temp_dir = PathBuf::from("C:\\Users\\DeeLMind\\Downloads\\tspacey.exe");
+    let local_version = "2.0.1";
+    // let (version, sha256) = get_info(remote_uri_info).unwrap();
+    // let is_download = compare_versions(&version, &local_version).unwrap();
+    // println!("{:?}", is_download);
+    // check_sha256(remote_uri_info.to_string(),"C:\\Users\\DeeLMind\\Downloads\\tspacey.exe".to_string()).unwrap();;
+    // update(remote_uri_info.to_string(),remote_uri_exe.to_string(),local_version.to_string(),"C:\\Users\\DeeLMind\\Downloads\\tspacey.exe".to_string()).unwrap();
+    do_update("C:\\Users\\DeeLMind\\Downloads\\tspacey.exe".to_string(),"D:\\Rust\\TargetCargo\\release\\bat.exe".to_string()).unwrap()
 }
