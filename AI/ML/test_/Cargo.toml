@@ -1,9 +1,0 @@
-[package]
-name = "test_"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-linfa = "0.7.1"
-linfa-linear = "0.7.1"
-ndarray = "0.16.1"
