@@ -1,0 +1,3 @@
+[submodule "WEB3"]
+	path = WEB3
+	url = https://github.com/DeeLMind/WEB3.git
