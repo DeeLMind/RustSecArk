@@ -1,0 +1,10 @@
+# clippy.toml
+
+# 最小支持的 Rust 版本
+msrv = "1.70.0"
+
+# 设置参数数量的警告阈值
+too-many-arguments-threshold = 5
+
+# 函数的最大认知复杂度
+cognitive-complexity-threshold = 25
