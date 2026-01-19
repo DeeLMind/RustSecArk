@@ -4,6 +4,3 @@
 [submodule "CTF"]
 	path = CTF
 	url = https://github.com/DeeLMind/CTF.git
-[submodule "AI"]
-	path = AI
-	url = https://github.com/DeeLMind/AI.git
