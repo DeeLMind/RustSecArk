@@ -1,68 +1,61 @@
+
+#[derive(Debug)]
+pub enum TryLockError {
+    Error(std::io::Error),
+    WouldBlock,
+}
+
+#[derive(Debug)]
+enum Message {
+    Quit,
+    Move(i32, i32),
+    Write(String),
+}
+
+#[derive(Debug)]
+enum Event {
+    Click { x: i32, y: i32 },
+    Key { code: u32 },
+}
+
+#[repr(u8)]
+enum Status {
+    Ok = 0,
+    Error = 1,
+}
+
+enum List {
+    Nil,
+    Cons(i32, Box<List>),
+}
+
+
 fn main() {
-    // 1. Custom enum definition
-    enum Direction {
-        Up,
-        Down,
-        Left,
-        Right,
-    }
+    // Example usage of TryLockError
+    let error = TryLockError::WouldBlock;
+    println!("{:?}", error);
 
-    impl Direction {
-        // Method to describe the direction as a string
-        fn describe(&self) -> &str {
-            match self {
-                Direction::Up => "Going up",
-                Direction::Down => "Going down",
-                Direction::Left => "Going left",
-                Direction::Right => "Going right",
-            }
+    // Example usage of Message
+    let msg = Message::Move(10, 20);
+    println!("{:?}", msg);
+
+    match msg {
+        Message::Quit => {}
+        Message::Move(x, y) => {
+            println!("Moving to ({}, {})", x, y);
         }
+        Message::Write(text) => {}
     }
 
-    // Using the Direction enum
-    let dir = Direction::Left;
-    println!("Direction: {}", dir.describe());
+    // if let Message::Write(text) = msg {
+    //     println!("{:?}", msg);
+    // }
 
-    // 2. Option<T> - Standard enum representing optional values
-    let some_number: Option<i32> = Some(42);
-    let no_number: Option<i32> = None;
+    // let Message::Write(text) = msg else {
+    //     return;
+    // };
 
-    // Matching on Option values
-    match some_number {
-        Some(n) => println!("Got a number: {}", n),
-        None => println!("No number found"),
-    }
-
-    match no_number {
-        Some(n) => println!("Got a number: {}", n),
-        None => println!("No number found"),
-    }
-
-    // 3. Result<T, E> - Standard enum representing success or error
-    // Define a custom error type
-    #[derive(Debug)]
-    enum MyError {
-        NotFound,
-        PermissionDenied,
-    }
-
-    // Function that returns a Result type
-    fn might_fail(success: bool) -> Result<String, MyError> {
-        if success {
-            Ok("Operation succeeded".to_string())
-        } else {
-            Err(MyError::NotFound)
-        }
-    }
-
-    // Using the Result enum with pattern matching
-    match might_fail(true) {
-        Ok(msg) => println!("Success: {}", msg),
-        Err(e) => println!("Error: {:?}", e),
-    }
-
-    match might_fail(false) {
-        Ok(msg) => println!("Success: {}", msg),
-        Err(e) => println!("Error: {:?}", e),
-    }
+    // Example usage of Event
+    let event = Event::Click { x: 100, y: 200 };
+    println!("{:?}", event);
 }
